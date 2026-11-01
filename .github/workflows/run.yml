@@ -1,0 +1,58 @@
+# Claims and runs queued journey runs (SPEC §7.5). A tick every 15 minutes, plus the web app's Run now, which
+# dispatches this workflow on main. The Actions log is public: only the worker's logger lines go to it.
+name: Run journeys
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+# The checkout uses APP_REPO_TOKEN, so the job's own GitHub token needs no scopes.
+permissions: {}
+
+# No concurrency group: a Run now job runs beside a tick's job, since claiming is atomic (SPEC §7.3).
+
+jobs:
+  run:
+    if: github.repository == 'josephsilcock/journey-monitor-runner'
+    runs-on: ubuntu-latest
+    # Must match the playwright version in apps/worker/package.json (the private repo's test checks it).
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --ipc=host
+    # Worst case about 43 minutes with API retries (SPEC §7.3).
+    timeout-minutes: 45
+    steps:
+      - name: Check out the app
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          repository: josephsilcock/journey-monitor
+          ref: main
+          token: ${{ secrets.APP_REPO_TOKEN }}
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version-file: .nvmrc
+      # Node 25+ no longer bundles Corepack: install the pnpm version pinned in package.json's packageManager.
+      - name: Install pnpm
+        run: npm install -g "$(node -p 'require("./package.json").packageManager')"
+      - name: Find the pnpm store
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - name: Restore the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+      - name: Install the worker
+        run: pnpm install --frozen-lockfile --filter "@journey-monitor/worker..."
+      # Started by node directly, so nothing but the worker's logger lines reaches the log.
+      # Exit codes: 0 normal, 64 configuration, 69 API trouble or an abandoned run, 70 unexpected.
+      - name: Run the worker
+        run: node apps/worker/src/cli.ts run
+        env:
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+          WORKER_TOKEN: ${{ secrets.WORKER_TOKEN }}
+          WORKER_REF: ${{ github.run_id }}
