@@ -1,10 +1,10 @@
-# Daily maintenance: retention and clean-up through the worker API (SPEC §7.5, §8.3). Daily at 03:00 UTC, or by hand.
+# Daily maintenance: retention and clean-up through the worker API (SPEC §7.5, §8.3). Daily at 03:17 UTC, or by hand.
 # The Actions log is public: only the worker's logger lines go to it.
 name: Maintenance
 
 on:
   schedule:
-    - cron: "0 3 * * *"
+    - cron: "17 3 * * *"
   workflow_dispatch:
 
 # The checkout uses APP_REPO_TOKEN, so the job's own GitHub token needs no scopes.

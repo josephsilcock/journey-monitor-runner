@@ -4,7 +4,7 @@ name: Run journeys
 
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "7,22,37,52 * * * *"
   workflow_dispatch:
 
 # The checkout uses APP_REPO_TOKEN, so the job's own GitHub token needs no scopes.

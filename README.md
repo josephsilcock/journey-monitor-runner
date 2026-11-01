@@ -14,7 +14,7 @@ no copy.
 | Workflow | When | What it does |
 |---|---|---|
 | `run.yml` | Every 15 minutes, and on Run now (the web app dispatches it on `main`) | Claims queued runs, runs them in the Playwright image and uploads their media (`node apps/worker/src/cli.ts run`) |
-| `maintenance.yml` | Daily at 03:00 UTC, and manually from the Actions tab | Retention and clean-up (`node apps/worker/src/cli.ts maintenance`) |
+| `maintenance.yml` | Daily at 03:17 UTC, and manually from the Actions tab | Retention and clean-up (`node apps/worker/src/cli.ts maintenance`) |
 
 Both jobs run only in `josephsilcock/journey-monitor-runner` (a fork or another copy skips them), give the job's
 own GitHub token no permissions, and pin every action to a commit SHA. Several `run.yml` jobs may run at once: claiming
