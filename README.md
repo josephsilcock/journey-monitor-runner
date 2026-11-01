@@ -3,9 +3,11 @@
 The GitHub Actions workflows that run Journey Monitor's journeys (SPEC §7.5, §7.7).
 
 This folder (`infra/runner-repo` in the private app repo, `josephsilcock/journey-monitor`) is copied as the root of
-the public repo `josephsilcock/journey-monitor-runner`, unchanged. Whenever the folder changes, update the copy: the
-runner repo only ever holds what this folder holds. The workflows check out the app repo's `main` and run its worker,
-so changes to the worker itself need no copy.
+the public repo `josephsilcock/journey-monitor-runner`, unchanged. The app repo's `sync-runner-repo.yml` workflow does
+the copying: whenever the folder changes on the app repo's `main`, it mirrors the folder to the runner repo's `main`,
+so the runner repo only ever holds what this folder holds. Don't edit the runner repo directly: the next sync
+overwrites it. The workflows check out the app repo's `main` and run its worker, so changes to the worker itself need
+no copy.
 
 ## Workflows
 
@@ -20,7 +22,7 @@ is atomic.
 
 The `run.yml` job uses the image `mcr.microsoft.com/playwright:v<version>-noble`, whose `<version>` must be the
 `playwright` version in the app repo's `apps/worker/package.json`, so the browsers match. When Playwright is bumped,
-bump the image tag here too and update the copy; the app repo's test fails until they match.
+bump the image tag here too (the sync copies it); the app repo's test fails until they match.
 
 ## Repository secrets
 
@@ -35,6 +37,10 @@ not variables, so GitHub masks them in the public log.
 
 The web app's `GITHUB_DISPATCH_TOKEN` (set in its hosting, not here) is a fine-grained personal access token with
 `actions: write` on `josephsilcock/journey-monitor-runner` only. It lets Run now dispatch `run.yml`.
+
+The app repo's `RUNNER_REPO_TOKEN` (an Actions secret in the app repo, not here) is a fine-grained personal access
+token with `contents: write` and `workflows: write` on `josephsilcock/journey-monitor-runner` only. The sync pushes
+with it.
 
 ## Keeping the log clean
 
@@ -67,6 +73,6 @@ keep-alive workflow, by design.
 While the workflows are off, no scheduled runs are created, and Run now can't start a job (its runs stay queued).
 
 To fix it, open the runner repo's **Actions** tab, select each workflow (`run.yml` and `maintenance.yml`) and click
-**Enable workflow**. Updating the copy of this folder also counts as activity.
+**Enable workflow**. A sync of a change to this folder also counts as activity.
 
 GitHub's documentation: <https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/disabling-and-enabling-a-workflow>.
